@@ -20,7 +20,8 @@ from typing_extensions import TypedDict
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.utils import load_config, setup_logging, get_logger
-from src.retriever import ChunkRetriever
+from src.embeddings import EmbeddingGenerator
+from src.vector_retriever import VectorRetriever
 from src.llm_client import GLMClient
 from src.graph.rag_node_new import RAGNode
 from src.graph.router import route_query
@@ -77,12 +78,22 @@ def initialize_system():
     # Initialize components
     logger.info("Initializing RAG components")
 
-    # Create retriever
+    # Create embedding generator
+    embedding_config = config["embedding"]
+    embedding_generator = EmbeddingGenerator(
+        api_key=api_key,
+        model=embedding_config["model"],
+        batch_size=embedding_config["batch_size"],
+        max_length=embedding_config["max_length"]
+    )
+
+    # Create vector retriever with ChromaDB
     rag_config = config["rag"]
-    retriever = ChunkRetriever(
-        chunks_file=rag_config["chunks_file"],
-        top_k=rag_config["top_k"],
-        min_similarity=rag_config["min_similarity"]
+    retriever = VectorRetriever(
+        embedding_generator=embedding_generator,
+        chroma_db_path=rag_config["chroma_db_path"],
+        collection_name=rag_config["collection_name"],
+        top_k=rag_config["top_k"]
     )
 
     # Create LLM client

@@ -65,10 +65,11 @@ This project uses `uv` for Python environment and dependency management.
 uv sync
 
 # 2. Set up environment variables
-export ZHIPU_API_KEY="your_api_key_here"
+cp .env.example .env
+# Edit .env and add your ZHIPU_API_KEY
 
-# 3. Preprocess documents (if not done)
-uv run python preprocess/chunk_documents.py
+# 3. Build RAG index (chunks + embeddings + vector DB)
+uv run python preprocess/scripts/build_rag_index.py
 
 # 4. Run RAG system (interactive mode)
 uv run python src/main_rag.py

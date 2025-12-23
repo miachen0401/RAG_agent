@@ -1,311 +1,247 @@
-# Document Preprocessing and Chunking
+# Document Preprocessing
 
-This module handles offline preprocessing of documents to create token-based chunks for RAG search.
+This directory handles document preprocessing for the RAG system.
 
-## Overview
-
-The preprocessing pipeline:
-
-1. **Discovers documents** in `project_folder/` directory
-2. **Loads documents** (supports .txt and .docx formats)
-3. **Extracts sections** based on headings and structure
-4. **Chunks text** using deterministic token-based splitting
-5. **Annotates chunks** with metadata (file_name, eln_id, section_id, section_name)
-6. **Saves chunks** to `chunks.json` for later use
-
-## Features
-
-### Token-Based Chunking
-
-- **Chunk Size**: 500 tokens
-- **Overlap**: 80 tokens (prevents truncation of identifiers, file paths, numeric values)
-- **Deterministic**: Uses tiktoken (cl100k_base encoding) for reproducible results
-- **Section-Aware**: Chunking applied within sections, but boundaries don't constrain chunk size
-
-### Metadata Annotation
-
-Each chunk includes:
-
-- `chunk_id`: Chunk number within the section
-- `global_chunk_id`: Unique ID across all chunks
-- `text`: Chunk content
-- `token_count`: Number of tokens in chunk
-- `file_name`: Folder name containing the document
-- `file_path`: Full path to source document
-- `eln_id`: Electronic Lab Notebook ID (if present in document)
-- `section_id`: Section number
-- `section_name`: Section heading/title
-- `start_token_idx`, `end_token_idx`: Token positions for debugging
-
-### Document Structure Support
-
-**Expected folder structure:**
-```
-project_folder/
-├── project1/
-│   └── document.docx    # Will be processed with file_name="project1"
-├── project2/
-│   └── report.docx      # Will be processed with file_name="project2"
-└── design_doc.txt       # Will be processed with file_name="project_folder"
-```
-
-**Currently supported:**
-- Flat structure (documents directly in `project_folder/`)
-- Nested structure (one document per subfolder - preferred structure)
-
-## Usage
-
-### Run Preprocessing
-
-```bash
-# Run the preprocessing script
-uv run python preprocess/chunk_documents.py
-```
-
-### Output Files
-
-After running, two files are created:
-
-1. **`preprocess/chunks.json`** - All chunks with full metadata
-   ```json
-   [
-     {
-       "chunk_id": 0,
-       "global_chunk_id": 0,
-       "text": "System Design Document - Authentication Module...",
-       "token_count": 7,
-       "file_name": "project_folder",
-       "file_path": "project_folder/design_doc.txt",
-       "eln_id": null,
-       "section_id": 0,
-       "section_name": "Introduction",
-       "start_token_idx": 0,
-       "end_token_idx": 7
-     },
-     ...
-   ]
-   ```
-
-2. **`preprocess/chunk_stats.json`** - Processing statistics
-   ```json
-   {
-     "total_documents": 1,
-     "total_chunks": 7,
-     "total_sections": 7,
-     "total_tokens": 309,
-     "chunk_size": 500,
-     "overlap": 80,
-     "processing_date": "2025-12-22T20:17:23.965647",
-     "documents": [...]
-   }
-   ```
-
-## Module Structure
+## Directory Structure
 
 ```
 preprocess/
-├── __init__.py
-├── chunking.py           # Token-based chunking utilities
-├── document_loader.py    # Document loading and section extraction
-├── chunk_documents.py    # Main preprocessing script
-├── chunks.json          # Output: processed chunks (generated)
-├── chunk_stats.json     # Output: statistics (generated)
-└── README.md           # This file
+├── scripts/
+│   ├── __init__.py
+│   └── build_rag_index.py    # Main script: chunk + embed + store
+├── utils/
+│   ├── __init__.py
+│   ├── chunking.py            # Token-based chunking utilities
+│   └── document_loader.py     # Document loading and section extraction
+├── output/
+│   ├── chunks.json            # Generated chunks (gitignored)
+│   ├── chunk_stats.json       # Statistics (gitignored)
+│   ├── chroma_db/             # Vector database (gitignored)
+│   └── .gitignore
+└── README.md                  # This file
 ```
 
-## Components
+## Quick Start
 
-### `chunking.py`
+### Single Command
 
-**TokenChunker class:**
-- `chunk_text(text, metadata)`: Chunk single text with metadata
-- `chunk_sections(sections, base_metadata)`: Chunk multiple sections
-- `count_tokens(text)`: Count tokens in text
+Build complete RAG index (chunks + embeddings + vector DB):
 
-### `document_loader.py`
-
-**DocumentLoader class:**
-- `load_document(file_path)`: Auto-detect and load any supported document
-- `load_text_file(file_path)`: Load and parse .txt files
-- `load_docx_file(file_path)`: Load and parse .docx files
-- `extract_eln_id(text)`: Extract ELN ID from document text
-
-**Utility functions:**
-- `find_documents_in_folders(root_dir)`: Find all documents in folder structure
-
-### `chunk_documents.py`
-
-**DocumentPreprocessor class:**
-- `process_all_documents()`: Main pipeline
-- `save_chunks(chunks)`: Save chunks to JSON
-- `save_stats(stats)`: Save statistics to JSON
-- `run()`: Complete preprocessing workflow
-
-## Section Detection
-
-Sections are automatically detected using multiple heuristics:
-
-### For .txt files:
-- Lines ending with `:` (e.g., "Introduction:")
-- All-caps lines (e.g., "AUTHENTICATION MODULE")
-- Numbered headings (e.g., "1. Overview", "2.1 Details")
-- Markdown headers (e.g., "# Introduction")
-
-### For .docx files:
-- Built-in Heading styles (Heading 1, Heading 2, etc.)
-- Text patterns matching heading conventions
-- Tables are extracted as separate sections
-
-## ELN ID Detection
-
-Automatically detects Electronic Lab Notebook IDs in documents:
-
-**Supported patterns:**
-- `ELN-12345`
-- `ELN_12345`
-- `eln-12345`
-- `ELN ID: 12345`
-- `eln id: 12345`
-
-## Customization
-
-### Adjust Chunk Size
-
-Edit `chunk_documents.py` or pass parameters:
-
-```python
-preprocessor = DocumentPreprocessor(
-    chunk_size=1000,  # Change to 1000 tokens
-    overlap=100       # Change to 100 token overlap
-)
+```bash
+uv run python preprocess/scripts/build_rag_index.py
 ```
 
-### Change Input/Output Directories
+This will:
+1. **Chunk documents** from `project_folder/`
+2. **Generate embeddings** using ZHIPU Embedding-3
+3. **Build ChromaDB** vector database
 
-```python
-preprocessor = DocumentPreprocessor(
-    documents_dir="path/to/documents",
-    output_dir="path/to/output"
-)
+### Prerequisites
+
+1. Install dependencies:
+```bash
+uv sync
 ```
 
-### Programmatic Usage
-
-```python
-from preprocess.chunking import create_chunker
-from preprocess.document_loader import DocumentLoader
-
-# Create chunker
-chunker = create_chunker(chunk_size=500, overlap=80)
-
-# Load document
-loader = DocumentLoader()
-doc_data = loader.load_document("project_folder/design_doc.txt")
-
-# Chunk sections
-metadata = {"file_name": "my_doc", "eln_id": None}
-chunks = chunker.chunk_sections(doc_data["sections"], metadata)
+2. Set API key:
+```bash
+cp .env.example .env
+# Edit .env and add your ZHIPU_API_KEY
 ```
 
-## Integration with RAG
-
-The generated `chunks.json` file is ready to be:
-
-1. **Loaded into vector database** (future):
-   ```python
-   import json
-   from chromadb import Client
-
-   with open("preprocess/chunks.json") as f:
-       chunks = json.load(f)
-
-   # Add to vector database
-   for chunk in chunks:
-       vector_db.add(
-           text=chunk["text"],
-           metadata={...}
-       )
-   ```
-
-2. **Used directly** (current):
-   - Load chunks in memory
-   - Search using keyword matching
-   - Retrieve relevant chunks for RAG
-
-3. **Migrated to online database**:
-   - Import chunks into SQL database
-   - Add vector embeddings column
-   - Enable hybrid search (keyword + semantic)
-
-## Example Output
-
+3. Add documents to `project_folder/`:
 ```
-======================================================================
-Document Preprocessing and Chunking
-======================================================================
-Chunk size: 500 tokens
-Overlap: 80 tokens
-
-Searching for documents in: project_folder
-Found 1 document(s)
-
-Processing: project_folder (project_folder/design_doc.txt)
-  - Found 7 section(s)
-  - Created 7 chunk(s)
-
-Saved 7 chunks to: preprocess/chunks.json
-Saved statistics to: preprocess/chunk_stats.json
-
-======================================================================
-Summary
-======================================================================
-Total documents processed: 1
-Total sections extracted: 7
-Total chunks created: 7
-Total tokens processed: 309
-Average tokens per chunk: 44.1
-======================================================================
+project_folder/
+├── project1/
+│   └── document.docx
+├── project2/
+│   └── report.docx
+└── ...
 ```
 
-## Future Enhancements
+## What It Does
 
-- [ ] Add support for PDF files
-- [ ] Implement semantic section detection
-- [ ] Add automatic language detection
-- [ ] Support for code files with syntax-aware chunking
-- [ ] Incremental processing (only update changed documents)
-- [ ] Direct integration with vector databases
-- [ ] Embedding generation during preprocessing
-- [ ] Support for .doc files (older Word format)
-- [ ] Multi-threading for large document sets
+### Step 1: Document Chunking
 
-## Dependencies
+- Loads documents from `project_folder/`
+- Extracts sections based on headings
+- Creates 500-token chunks with 80-token overlap
+- Saves to `preprocess/output/chunks.json`
 
-Required packages (installed via `uv sync`):
-- `tiktoken>=0.5.0` - Token counting and encoding
-- `python-docx>=1.0.0` - Word document processing
+### Step 2: Embedding Generation
+
+- Generates embeddings for each chunk
+- Uses ZHIPU Embedding-3 API
+- Processes in batches of 16
+
+### Step 3: Vector Database
+
+- Stores chunks and embeddings in ChromaDB
+- Uses cosine similarity
+- Persists to `preprocess/output/chroma_db/`
+
+## Output Files
+
+### `output/chunks.json`
+
+All chunks with metadata:
+```json
+[
+  {
+    "chunk_id": 0,
+    "global_chunk_id": 0,
+    "text": "Content here...",
+    "token_count": 234,
+    "file_name": "project1",
+    "section_name": "Introduction",
+    "eln_id": "ELN0010425"
+  }
+]
+```
+
+### `output/chunk_stats.json`
+
+Processing statistics:
+```json
+{
+  "total_documents": 3,
+  "total_chunks": 73,
+  "total_tokens": 2273,
+  "processing_date": "2025-12-22T..."
+}
+```
+
+### `output/chroma_db/`
+
+ChromaDB vector database (binary files)
+
+## Configuration
+
+All settings in `config.yaml`:
+
+```yaml
+# Chunking
+chunking:
+  chunk_size: 500    # Tokens per chunk
+  overlap: 80        # Overlap tokens
+
+# Embeddings
+embedding:
+  model: "embedding-3"
+  batch_size: 16
+
+# Vector DB
+rag:
+  collection_name: "document_chunks"
+  chroma_db_path: "preprocess/output/chroma_db"
+```
+
+## Adding More Documents
+
+```bash
+# 1. Add documents to project_folder/
+cp -r new_project/ project_folder/
+
+# 2. Rebuild index (overwrites existing)
+uv run python preprocess/scripts/build_rag_index.py
+```
+
+## Modules
+
+### `utils/chunking.py`
+
+Token-based text chunking:
+- `TokenChunker`: Main chunker class
+- `create_chunker()`: Factory function
+- Uses tiktoken (cl100k_base)
+
+### `utils/document_loader.py`
+
+Document loading:
+- `DocumentLoader`: Load .docx and .txt files
+- `find_documents_in_folders()`: Discover documents
+- Section extraction based on headings
+- ELN ID detection
+
+### `scripts/build_rag_index.py`
+
+Main preprocessing pipeline:
+- Combines all steps
+- Progress logging
+- Error handling
+- Statistics generation
 
 ## Troubleshooting
 
-**No documents found:**
-- Ensure documents are in `project_folder/` directory
-- Check file extensions (.txt or .docx)
-- Verify folder structure matches expected pattern (one .docx per subfolder)
+### "No documents found"
 
-**Import errors:**
-- Run `uv sync` to install dependencies
-- Ensure you're running from project root
+Check `project_folder/` structure:
+```bash
+ls -R project_folder/
+```
 
-**Small chunks:**
-- Documents with many small sections will create smaller chunks
-- This is expected behavior to maintain section boundaries
-- Average chunk size shown in stats
+Expected: Each subfolder should have a .docx or .txt file.
 
-**Missing ELN ID:**
-- Ensure ELN ID follows supported patterns
-- Check document contains "ELN" or "eln" prefix
-- Add custom patterns in `extract_eln_id()` if needed
+### "ZHIPU_API_KEY not set"
 
-## Contact
+```bash
+# Check .env file
+cat .env
 
-For questions or issues with preprocessing, refer to the main project README.
+# Should contain:
+ZHIPU_API_KEY=your_actual_key_here
+```
+
+### "ModuleNotFoundError"
+
+```bash
+# Reinstall dependencies
+uv sync
+```
+
+### Slow processing
+
+Reduce batch size in `config.yaml`:
+```yaml
+embedding:
+  batch_size: 8  # Reduce from 16
+```
+
+## Performance
+
+For 73 chunks (typical project):
+- **Chunking**: ~1-2 seconds
+- **Embedding generation**: ~2-3 minutes (API calls)
+- **ChromaDB storage**: ~1 second
+- **Total**: ~3-5 minutes
+
+## API Costs
+
+ZHIPU Embedding-3: ~¥0.0007 per 1K tokens
+
+Example: 100 chunks × 500 tokens = 50K tokens = ¥0.035 (~$0.005)
+
+## Logging
+
+Logs saved to `logs/rag_system.log`:
+
+```
+INFO - Found 3 document(s)
+INFO - Processing: project1
+INFO - Created 25 chunk(s)
+INFO - Generating embeddings for 73 chunks
+INFO - Generated 73 embeddings
+INFO - Added batch 1/1
+INFO - RAG Index Build Complete!
+```
+
+## Next Steps
+
+After building the index:
+
+```bash
+# Run RAG system
+uv run python src/main_rag.py
+```
+
+The system will automatically load from `preprocess/output/chroma_db/`.

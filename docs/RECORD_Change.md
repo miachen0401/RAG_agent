@@ -110,3 +110,124 @@ Added automatic `.env` file support:
 
 ### Index
 Added python-dotenv for automatic .env file loading - users can store API keys in .env file instead of exporting manually.
+
+---
+
+## 2025-12-22: Replaced TF-IDF with ZHIPU Embedding-3 and ChromaDB
+
+### Index
+Replaced keyword-based TF-IDF with neural embeddings (ZHIPU Embedding-3) and vector database (ChromaDB) for semantic similarity search.
+
+### Changes
+
+**Removed:**
+- TF-IDF vectorization (scikit-learn)
+- JSON-based chunk storage for retrieval
+
+**Added:**
+1. **Embedding Generation** (`src/embeddings.py`)
+   - `EmbeddingGenerator`: Generate embeddings using ZHIPU Embedding-3
+   - Batch processing support
+   - Configurable batch size and max length
+
+2. **Vector Database** (`preprocess/build_vector_db.py`)
+   - Generate embeddings for all chunks
+   - Store in ChromaDB with cosine similarity
+   - Persistent storage for vector index
+
+3. **Vector Retriever** (`src/vector_retriever.py`)
+   - `VectorRetriever`: Query ChromaDB with query embeddings
+   - Returns top-k most similar chunks
+   - Semantic similarity instead of keyword matching
+
+4. **Updated Dependencies**
+   - Added `chromadb>=0.4.0`
+   - Removed `scikit-learn` (no longer needed)
+
+### Configuration
+
+Updated `config.yaml`:
+```yaml
+rag:
+  top_k: 5
+  collection_name: "document_chunks"
+  chroma_db_path: "chroma_db"
+
+embedding:
+  model: "embedding-3"  # ZHIPU Embedding-3
+  batch_size: 16
+  max_length: 8192
+```
+
+### Workflow
+
+**Preprocessing (offline):**
+1. Chunk documents → `chunks.json`
+2. Generate embeddings → ZHIPU Embedding-3 API
+3. Store in ChromaDB → `chroma_db/`
+
+**Query (online):**
+1. User query → Generate query embedding
+2. Search ChromaDB → Top-k similar chunks
+3. LLM generates answer → Based on retrieved context
+
+### Benefits
+
+- ✅ Semantic understanding (not just keywords)
+- ✅ Handles paraphrased queries
+- ✅ Understands synonyms and context
+- ✅ Better retrieval quality
+- ✅ Scalable to large document sets
+
+### Usage
+
+```bash
+# 1. Install dependencies
+uv sync
+
+# 2. Build RAG index (chunks + embeddings + vector DB)
+uv run python preprocess/scripts/build_rag_index.py
+
+# 3. Run RAG system
+uv run python src/main_rag.py
+```
+
+---
+
+## 2025-12-22: Reorganized Preprocess and Combined Scripts
+
+### Index
+Reorganized preprocess directory structure and combined chunking + embedding + vector DB into single script for cleaner workflow.
+
+### Changes
+
+**Directory Structure:**
+```
+preprocess/
+├── scripts/
+│   └── build_rag_index.py    # Combined: chunk + embed + store
+├── utils/
+│   ├── chunking.py            # Moved from preprocess/
+│   └── document_loader.py     # Moved from preprocess/
+└── output/
+    ├── chunks.json            # Generated files
+    ├── chunk_stats.json
+    └── chroma_db/
+```
+
+**Benefits:**
+- Single command to build complete RAG index
+- Cleaner directory organization
+- All generated files in `output/` (gitignored)
+- Better separation: scripts vs utilities vs output
+
+**Fixed:**
+- Added `sniffio>=1.3.0` dependency (required by zhipuai SDK)
+- Updated ChromaDB path to `preprocess/output/chroma_db`
+
+**New Single Command:**
+```bash
+uv run python preprocess/scripts/build_rag_index.py
+```
+
+This replaces the previous two-step process.

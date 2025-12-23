@@ -18,7 +18,7 @@ rag:
   # ChromaDB collection name
   collection_name: "document_chunks"
   # ChromaDB persist directory
-  chroma_db_path: "chroma_db"
+  chroma_db_path: "preprocess/output/chroma_db"
 
 # Embedding Configuration - ZHIPU Embedding-3
 embedding:
