@@ -1,0 +1,57 @@
+# RAG System Configuration
+
+# API Configuration
+api:
+  # ZHIPU AI API key (set via environment variable: ZHIPU_API_KEY)
+  zhipu_api_key: ${ZHIPU_API_KEY}
+  # GLM model to use
+  model: "glm-4-flash"
+  # API timeout in seconds
+  timeout: 30
+  # Max retries for API calls
+  max_retries: 3
+
+# RAG Configuration
+rag:
+  # Number of top similar chunks to retrieve
+  top_k: 5
+  # ChromaDB collection name
+  collection_name: "document_chunks"
+  # ChromaDB persist directory
+  chroma_db_path: "chroma_db"
+
+# Embedding Configuration - ZHIPU Embedding-3
+embedding:
+  # ZHIPU embedding model
+  model: "embedding-3"
+  # Batch size for embedding generation
+  batch_size: 16
+  # Max text length per embedding (Embedding-3 supports up to 8192 tokens)
+  max_length: 8192
+
+# Chunking Configuration (for preprocessing)
+chunking:
+  chunk_size: 500
+  overlap: 80
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/rag_system.log"
+  console: true
+
+# LLM Prompt Configuration
+prompts:
+  system_prompt: |
+    You are a helpful AI assistant that answers questions based on provided document context.
+    Use the following context to answer the user's question accurately and concisely.
+    If the context doesn't contain enough information to answer the question, say so.
+
+  rag_template: |
+    Context:
+    {context}
+
+    Question: {query}
+
+    Answer:

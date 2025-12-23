@@ -1,0 +1,27 @@
+{
+  "total_documents": 2,
+  "total_chunks": 66,
+  "total_sections": 66,
+  "total_tokens": 1964,
+  "documents": [
+    {
+      "folder_name": "2025_013_TMPIF1096_cateatfish_D210GX0001",
+      "file_path": "project_folder/2025_013_TMPIF1096_cateatfish_D210GX0001/2025_013_TMPIF1096_cateatfish_D210GX0001.docx",
+      "eln_id": "ELN0010425",
+      "sections": 33,
+      "chunks": 33,
+      "tokens": 986
+    },
+    {
+      "folder_name": "2025_092_TMPIF446_diverthedave_D328GX0007",
+      "file_path": "project_folder/2025_092_TMPIF446_diverthedave_D328GX0007/2025_092_TMPIF446_diverthedave_D328GX0007.docx",
+      "eln_id": "ELN00107362",
+      "sections": 33,
+      "chunks": 33,
+      "tokens": 978
+    }
+  ],
+  "chunk_size": 500,
+  "overlap": 80,
+  "processing_date": "2025-12-22T23:58:49.133484"
+}
