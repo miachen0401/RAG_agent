@@ -8,7 +8,7 @@ This module handles queries using:
 
 from typing import Dict, Any
 
-from src.retriever import ChunkRetriever
+from src.vector_retriever import VectorRetriever
 from src.llm_client import GLMClient
 from src.utils import get_logger
 
@@ -22,7 +22,7 @@ class RAGNode:
 
     def __init__(
         self,
-        retriever: ChunkRetriever,
+        retriever: VectorRetriever,
         llm_client: GLMClient,
         system_prompt: str
     ):
@@ -30,7 +30,7 @@ class RAGNode:
         Initialize RAG node.
 
         Args:
-            retriever: ChunkRetriever instance
+            retriever: VectorRetriever instance
             llm_client: GLMClient instance
             system_prompt: System prompt for LLM
         """

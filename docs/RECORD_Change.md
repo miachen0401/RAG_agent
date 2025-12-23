@@ -1,5 +1,48 @@
 # Change Records
 
+## 2025-12-23: Removed Obsolete TF-IDF Code
+
+### Index
+Removed all obsolete sklearn/TF-IDF code and documentation after migration to ZHIPU Embedding-3 + ChromaDB.
+
+### Files Removed
+
+**Source files:**
+- `src/retriever.py` - Old TF-IDF-based ChunkRetriever
+- `src/graph/rag_node.py` - Old RAG node using TF-IDF
+- `src/main.py` - Old main file
+- `example.py` - Obsolete example file
+
+**Documentation:**
+- `docs/RAG_USAGE_GUIDE.md` - TF-IDF usage documentation
+- `docs/IMPLEMENTATION_SUMMARY.md` - TF-IDF implementation details
+- `docs/RAG_METHODS.md` - TF-IDF vs embeddings comparison
+
+### Code Updates
+
+**Fixed `src/graph/rag_node_new.py`:**
+- Changed import from `ChunkRetriever` to `VectorRetriever`
+- Updated type hint from `ChunkRetriever` to `VectorRetriever`
+
+### Dependencies Removed
+
+- `scikit-learn` - No longer needed (replaced by ZHIPU Embedding-3)
+
+### Verification
+
+✅ No remaining references to:
+- `sklearn`
+- `TfidfVectorizer`
+- `ChunkRetriever`
+- `src.retriever`
+
+✅ All Python files now use only:
+- `VectorRetriever` (ChromaDB-based retrieval)
+- ZHIPU Embedding-3 for embeddings
+- Semantic similarity search
+
+---
+
 ## 2025-12-22: RAG System with Chunk-based Retrieval and GLM-4-Flash Integration
 
 ### Index
