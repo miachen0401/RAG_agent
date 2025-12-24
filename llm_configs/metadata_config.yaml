@@ -1,0 +1,21 @@
+# Metadata Query Configuration
+# For retrieving project metadata and identifiers (no LLM generation)
+
+# Response Templates
+response_template: |
+  Found {num_projects} matching project(s):
+
+  {project_list}
+
+project_item_template: |
+  {index}. Project: {file_name}
+     ELN ID: {eln_id}
+     File Path: {file_path}
+     Relevance Score: {score:.4f}
+
+no_results_message: |
+  No matching projects found for your query.
+  Please try rephrasing or using different keywords.
+
+# Note: Metadata queries don't use LLM generation
+# They directly return structured metadata from vector search results

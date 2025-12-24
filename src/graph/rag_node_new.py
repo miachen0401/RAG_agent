@@ -66,7 +66,7 @@ class RAGNode:
             if not chunks_with_scores:
                 logger.warning("No chunks retrieved for query")
                 state["response"] = "I couldn't find relevant information to answer your question."
-                state["route"] = "rag"
+                state["route"] = "SEMANTIC_QUERY"
                 return state
 
             logger.info(f"Retrieved {len(chunks_with_scores)} relevant chunks")
@@ -90,13 +90,13 @@ class RAGNode:
                 logger.info("Successfully generated answer")
                 state["response"] = answer
 
-            state["route"] = "rag"
+            state["route"] = "SEMANTIC_QUERY"
             state["retrieved_chunks"] = len(chunks_with_scores)
 
         except Exception as e:
             logger.error(f"Error in RAG pipeline: {e}", exc_info=True)
             state["response"] = f"An error occurred: {str(e)}"
-            state["route"] = "rag"
+            state["route"] = "SEMANTIC_QUERY"
 
         return state
 
@@ -116,5 +116,5 @@ def rag_node_function(state: Dict[str, Any]) -> Dict[str, Any]:
     # This will be replaced with actual configured instance
     logger.warning("rag_node_function called without proper initialization")
     state["response"] = "RAG node not properly configured"
-    state["route"] = "rag"
+    state["route"] = "SEMANTIC_QUERY"
     return state

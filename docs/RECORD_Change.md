@@ -1,5 +1,299 @@
 # Change Records
 
+## 2025-12-23: Reorganized to LLM Configs Directory Structure
+
+### Index
+Reorganized configuration structure from single `prompts/prompts.yaml` to individual LLM config files in `llm_configs/` directory for better separation and management.
+
+### Changes
+
+**Created `llm_configs/` directory with separate config files:**
+- `router_config.yaml` - Router LLM configuration
+- `rag_config.yaml` - RAG LLM configuration
+- `metadata_config.yaml` - Metadata query templates
+- `data_analysis_config.yaml` - Data analysis (placeholder)
+- `README.md` - Comprehensive documentation
+
+**Updated Code:**
+- `src/utils.py` - Added `load_llm_config()` function
+- `src/graph/router.py` - Loads from `router_config.yaml`
+- `src/main_rag.py` - Loads from `rag_config.yaml`
+- `config.yaml` - Updated to reference `llm_configs` directory
+
+**Removed:**
+- `prompts/` directory (replaced by `llm_configs/`)
+
+### New Structure
+
+**Before:**
+```
+prompts/
+└── prompts.yaml
+    ├── router: {...}
+    ├── semantic_query: {...}
+    ├── metadata_query: {...}
+    └── data_analysis: {...}
+```
+
+**After:**
+```
+llm_configs/
+├── router_config.yaml
+├── rag_config.yaml
+├── metadata_config.yaml
+├── data_analysis_config.yaml
+└── README.md
+```
+
+### Benefits
+
+- ✅ **Clear Separation:** Each LLM component has its own config file
+- ✅ **Easy Management:** Edit individual configs without affecting others
+- ✅ **Scalable:** Easy to add new LLM components (just add new .yaml file)
+- ✅ **Better Version Control:** Smaller diffs, easier to track changes
+- ✅ **Self-Documenting:** File names clearly indicate purpose
+
+### Usage
+
+**Loading LLM Configs:**
+```python
+from src.utils import load_llm_config
+
+# Load router config
+router_config = load_llm_config("router_config")
+
+# Load RAG config
+rag_config = load_llm_config("rag_config")
+
+# Access settings
+system_prompt = rag_config["system_prompt"]
+temperature = rag_config["temperature"]
+```
+
+**Adding New LLM Component:**
+1. Create `llm_configs/new_component_config.yaml`
+2. Define model, temperature, max_tokens, prompts
+3. Load in code: `config = load_llm_config("new_component_config")`
+4. No changes to config.yaml needed!
+
+### Future-Proof
+
+Easy to add new LLM-powered features:
+- Translation LLM
+- Summarization LLM
+- Code generation LLM
+- Q&A generation LLM
+- Multi-modal LLM (if supported)
+
+Each gets its own config file in `llm_configs/`.
+
+---
+
+## 2025-12-23: Centralized Prompts Configuration System
+
+### Index
+Reorganized all LLM prompts into a centralized YAML configuration file for better management, version control, and maintainability.
+
+### Changes
+
+**Created:**
+- `prompts/prompts.yaml` - Centralized prompts configuration
+  - Router prompts with polished, professional instructions
+  - Semantic query prompts (moved from config.yaml)
+  - Metadata query response templates
+  - Data analysis prompts (placeholder)
+  - Error and fallback messages
+  - Model parameters (temperature, max_tokens) per route
+
+- `prompts/README.md` - Comprehensive documentation
+  - Usage examples and best practices
+  - Temperature and max_tokens guidelines
+  - Troubleshooting guide
+  - Prompt editing workflow
+
+**Updated:**
+- `config.yaml` - Simplified prompts section
+  - Now only contains reference to `prompts/prompts.yaml`
+  - Removed inline prompt strings
+
+- `src/utils.py` - Added `load_prompts()` function
+  - Loads and parses prompts YAML file
+  - Returns prompts configuration dictionary
+
+- `src/graph/router.py` - Uses new prompts config
+  - Loads router prompts from YAML
+  - Caches prompts for performance
+  - Gets temperature and max_tokens from config
+
+- `src/main_rag.py` - Loads prompts dynamically
+  - Reads prompts config file path from config.yaml
+  - Passes semantic_query prompts to RAG node
+  - Centralized prompt loading
+
+**Removed:**
+- `prompts/LLM_router.txt` - Replaced by YAML config
+
+### Prompts Structure
+
+```yaml
+router:
+  system_prompt: |
+    Professional routing instructions...
+  temperature: 0.0
+  max_tokens: 10
+
+semantic_query:
+  system_prompt: |
+    Research assistant instructions...
+  user_message_template: |
+    Context and query formatting...
+  temperature: 0.7
+  max_tokens: 2000
+
+metadata_query:
+  response_template: |
+    Structured output format...
+
+data_analysis:
+  system_prompt: |
+    Data analysis instructions...
+
+fallback_messages:
+  routing_error: |
+    Error message...
+```
+
+### Benefits
+
+- ✅ All prompts in one file (easy to find and edit)
+- ✅ Professional, polished prompt engineering
+- ✅ Version control friendly (YAML format)
+- ✅ Model parameters co-located with prompts
+- ✅ Clear separation by route type
+- ✅ Comprehensive documentation
+- ✅ Easy to A/B test prompt changes
+- ✅ No code changes needed to update prompts
+
+### Migration
+
+Old structure (config.yaml):
+```yaml
+prompts:
+  system_prompt: |
+    Simple prompt...
+```
+
+New structure:
+```yaml
+# config.yaml
+prompts:
+  config_file: "prompts/prompts.yaml"
+
+# prompts/prompts.yaml
+semantic_query:
+  system_prompt: |
+    Detailed, professional prompt...
+```
+
+---
+
+## 2025-12-23: Implemented LLM-based Routing with Three Execution Paths
+
+### Index
+Replaced rule-based routing with LLM-based classification using prompts/LLM_router.txt. Added three execution paths: SEMANTIC_QUERY (RAG), METADATA_QUERY (direct metadata retrieval), and DATA_ANALYSIS (placeholder).
+
+### New Routes
+
+1. **SEMANTIC_QUERY** (replaces "rag")
+   - Document content questions
+   - Methods, results, conclusions
+   - Semantic understanding of text
+
+2. **METADATA_QUERY** (new functionality)
+   - Project names, folder names
+   - ELN IDs, identifiers
+   - Uses vector search + metadata extraction
+   - Returns metadata info without LLM generation
+
+3. **DATA_ANALYSIS** (replaces "analysis")
+   - Data visualization
+   - Metrics comparison
+   - Placeholder for future implementation
+
+### Components Created/Updated
+
+**New Files:**
+- `src/graph/metadata_node.py` - MetadataNode for METADATA_QUERY path
+  - Uses vector search to find matching documents
+  - Extracts and returns metadata (file_name, eln_id, file_path)
+  - Handles partial name queries
+
+**Updated Files:**
+- `src/graph/router.py` - Complete rewrite for LLM-based routing
+  - Uses prompts/LLM_router.txt for classification
+  - Calls GLM-4-Flash with temperature=0.0 for deterministic routing
+  - Fallback to rule-based routing if LLM fails
+
+- `src/graph/rag_node_new.py` - Updated route name from "rag" to "SEMANTIC_QUERY"
+
+- `src/graph/analysis_node.py` - Updated route name from "analysis" to "DATA_ANALYSIS"
+
+- `src/llm_client.py` - Added default temperature parameter
+  - Constructor accepts temperature parameter
+  - generate() and generate_simple() use default if not specified
+
+- `src/main_rag.py` - Complete integration of new routing system
+  - Three node wrappers: rag_node_wrapper, metadata_node_wrapper
+  - Separate LLM client for router (temperature=0)
+  - Updated graph with three execution paths
+
+### Routing Prompt
+
+Uses `prompts/LLM_router.txt` with:
+- Temperature: 0.0 (deterministic)
+- Max tokens: 5 (only return route label)
+- Returns: METADATA_QUERY, SEMANTIC_QUERY, or DATA_ANALYSIS
+
+### METADATA_QUERY Implementation
+
+Pipeline:
+1. **Vector search**: Query → Embedding → Find similar chunks
+2. **Extract metadata**: Deduplicate by file_name, collect eln_id, file_path
+3. **Format response**: Return metadata info (no LLM generation)
+
+Example query: "What is the project name for cat eats fish?"
+Example response:
+```
+Found 2 matching project(s):
+
+1. Project: 2025_013_TMPIF1096_cateatfish_D210GX0001
+   ELN ID: ELN0010425
+   Path: project_folder/2025_013_TMPIF1096_cateatfish_D210GX0001/...
+   Relevance: 0.8234
+```
+
+### Benefits
+
+- ✅ LLM-based intent classification (more accurate than keyword matching)
+- ✅ Handles metadata queries efficiently without LLM generation
+- ✅ Supports partial name queries using semantic search
+- ✅ Clear separation of execution paths
+- ✅ Fallback to rule-based routing for robustness
+
+### Testing
+
+Run the system:
+```bash
+uv run python src/main_rag.py
+```
+
+Example queries:
+- "What are the sample preparation methods?" → SEMANTIC_QUERY
+- "What is the ELN ID for cat eats fish?" → METADATA_QUERY
+- "Compare project metrics" → DATA_ANALYSIS
+
+---
+
 ## 2025-12-23: Removed Obsolete TF-IDF Code
 
 ### Index

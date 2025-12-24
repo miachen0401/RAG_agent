@@ -1,10 +1,10 @@
 """
-Main Entry Point for LangGraph RAG Agent with Chunk-based Retrieval.
+Main Entry Point for LangGraph RAG Agent with LLM-based Routing.
 
 This module orchestrates the RAG system with:
-- Configuration loading
-- Logging setup
-- Chunk-based similarity search
+- LLM-based intent classification
+- Three execution paths: SEMANTIC_QUERY, METADATA_QUERY, DATA_ANALYSIS
+- ZHIPU Embedding-3 + ChromaDB vector retrieval
 - GLM-4-Flash LLM integration
 """
 
@@ -19,19 +19,22 @@ from typing_extensions import TypedDict
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.utils import load_config, setup_logging, get_logger
+from src.utils import load_config, setup_logging, get_logger, load_llm_config
 from src.embeddings import EmbeddingGenerator
 from src.vector_retriever import VectorRetriever
 from src.llm_client import GLMClient
 from src.graph.rag_node_new import RAGNode
+from src.graph.metadata_node import MetadataNode
 from src.graph.router import route_query
 from src.graph.analysis_node import analysis_node_function
 
 
-# Global configuration and logger
+# Global configuration and instances
 config = None
 logger = None
 rag_node_instance = None
+metadata_node_instance = None
+llm_client_router = None
 
 
 class AgentState(TypedDict):
@@ -40,9 +43,9 @@ class AgentState(TypedDict):
 
     Attributes:
         query: User input query
-        route: Routing decision ('rag' or 'analysis')
+        route: Routing decision ('SEMANTIC_QUERY', 'METADATA_QUERY', or 'DATA_ANALYSIS')
         response: Final response to user
-        retrieved_chunks: Number of chunks retrieved (RAG path)
+        retrieved_chunks: Number of chunks retrieved (RAG/Metadata paths)
         analysis_data: Optional raw analysis data
     """
     query: str
@@ -56,7 +59,7 @@ def initialize_system():
     """
     Initialize the RAG system: load config, setup logging, create components.
     """
-    global config, logger, rag_node_instance
+    global config, logger, rag_node_instance, metadata_node_instance, llm_client_router
 
     # Load configuration
     config = load_config("config.yaml")
@@ -64,7 +67,7 @@ def initialize_system():
     # Setup logging
     logger = setup_logging(config)
     logger.info("="*70)
-    logger.info("RAG System Starting")
+    logger.info("RAG System Starting - LLM-based Routing")
     logger.info("="*70)
 
     # Check for API key
@@ -96,29 +99,56 @@ def initialize_system():
         top_k=rag_config["top_k"]
     )
 
-    # Create LLM client
-    api_config = config["api"]
+    # Load LLM configurations
+    llm_configs = config.get("llm_configs", {})
+
+    # Load RAG LLM config
+    rag_config_file = llm_configs.get("rag", "rag_config.yaml")
+    rag_config = load_llm_config(rag_config_file)
+    logger.info(f"Loaded RAG config from: {rag_config_file}")
+
+    # Load Router LLM config
+    router_config_file = llm_configs.get("router", "router_config.yaml")
+    router_config = load_llm_config(router_config_file)
+    logger.info(f"Loaded Router config from: {router_config_file}")
+
+    # Create LLM client for RAG
     llm_client = GLMClient(
         api_key=api_key,
-        model=api_config["model"],
-        timeout=api_config["timeout"],
-        max_retries=api_config["max_retries"]
+        model=rag_config.get("model", "glm-4.5-flash"),
+        temperature=rag_config.get("temperature", 0.7),
+        timeout=rag_config.get("timeout", 30),
+        max_retries=rag_config.get("max_retries", 3)
     )
 
-    # Create RAG node
-    prompts = config["prompts"]
+    # Create LLM client for router
+    llm_client_router = GLMClient(
+        api_key=api_key,
+        model=router_config.get("model", "glm-4.5-flash"),
+        temperature=router_config.get("temperature", 0.0),
+        timeout=router_config.get("timeout", 30),
+        max_retries=router_config.get("max_retries", 3)
+    )
+
+    # Create RAG node (SEMANTIC_QUERY path)
     rag_node_instance = RAGNode(
         retriever=retriever,
         llm_client=llm_client,
-        system_prompt=prompts["system_prompt"]
+        system_prompt=rag_config.get("system_prompt", "")
+    )
+
+    # Create Metadata node (METADATA_QUERY path)
+    metadata_node_instance = MetadataNode(
+        retriever=retriever
     )
 
     logger.info("RAG system initialized successfully")
+    logger.info("Routes available: SEMANTIC_QUERY, METADATA_QUERY, DATA_ANALYSIS")
 
 
 def router_node(state: AgentState) -> AgentState:
     """
-    Router node that determines execution path.
+    Router node that determines execution path using LLM classification.
 
     Args:
         state: Current agent state
@@ -127,7 +157,7 @@ def router_node(state: AgentState) -> AgentState:
         Updated state with routing decision
     """
     query = state.get("query", "")
-    route = route_query(query)
+    route = route_query(query, llm_client=llm_client_router)
     state["route"] = route
     logger.info(f"Query routed to: {route}")
     return state
@@ -135,7 +165,7 @@ def router_node(state: AgentState) -> AgentState:
 
 def rag_node_wrapper(state: AgentState) -> AgentState:
     """
-    Wrapper for RAG node that uses the global instance.
+    Wrapper for RAG node (SEMANTIC_QUERY path).
 
     Args:
         state: Current agent state
@@ -146,7 +176,20 @@ def rag_node_wrapper(state: AgentState) -> AgentState:
     return rag_node_instance.process(state)
 
 
-def route_decision(state: AgentState) -> Literal["rag", "analysis"]:
+def metadata_node_wrapper(state: AgentState) -> AgentState:
+    """
+    Wrapper for Metadata node (METADATA_QUERY path).
+
+    Args:
+        state: Current agent state
+
+    Returns:
+        Updated state with metadata response
+    """
+    return metadata_node_instance.process(state)
+
+
+def route_decision(state: AgentState) -> Literal["SEMANTIC_QUERY", "METADATA_QUERY", "DATA_ANALYSIS"]:
     """
     Conditional edge function for routing.
 
@@ -154,7 +197,7 @@ def route_decision(state: AgentState) -> Literal["rag", "analysis"]:
         state: Current agent state
 
     Returns:
-        Next node name ('rag' or 'analysis')
+        Next node name ('SEMANTIC_QUERY', 'METADATA_QUERY', or 'DATA_ANALYSIS')
     """
     return state["route"]
 
@@ -164,7 +207,7 @@ def create_graph() -> StateGraph:
     Create and configure the LangGraph workflow.
 
     Graph structure:
-        START -> router -> [rag_node | analysis_node] -> END
+        START -> router -> [SEMANTIC_QUERY | METADATA_QUERY | DATA_ANALYSIS] -> END
 
     Returns:
         Configured StateGraph instance
@@ -176,8 +219,9 @@ def create_graph() -> StateGraph:
 
     # Add nodes
     workflow.add_node("router", router_node)
-    workflow.add_node("rag", rag_node_wrapper)
-    workflow.add_node("analysis", analysis_node_function)
+    workflow.add_node("SEMANTIC_QUERY", rag_node_wrapper)
+    workflow.add_node("METADATA_QUERY", metadata_node_wrapper)
+    workflow.add_node("DATA_ANALYSIS", analysis_node_function)
 
     # Set entry point
     workflow.set_entry_point("router")
@@ -187,16 +231,18 @@ def create_graph() -> StateGraph:
         "router",
         route_decision,
         {
-            "rag": "rag",
-            "analysis": "analysis"
+            "SEMANTIC_QUERY": "SEMANTIC_QUERY",
+            "METADATA_QUERY": "METADATA_QUERY",
+            "DATA_ANALYSIS": "DATA_ANALYSIS"
         }
     )
 
-    # Both paths lead to END
-    workflow.add_edge("rag", END)
-    workflow.add_edge("analysis", END)
+    # All paths lead to END
+    workflow.add_edge("SEMANTIC_QUERY", END)
+    workflow.add_edge("METADATA_QUERY", END)
+    workflow.add_edge("DATA_ANALYSIS", END)
 
-    logger.info("LangGraph workflow created")
+    logger.info("LangGraph workflow created with 3 execution paths")
     return workflow
 
 
@@ -246,6 +292,11 @@ def interactive_mode():
     """
     logger.info("Entering interactive mode")
 
+    print("\nExample queries:")
+    print("  - SEMANTIC_QUERY: 'What are the sample preparation methods?'")
+    print("  - METADATA_QUERY: 'What is the project name for cat eats fish?'")
+    print("  - DATA_ANALYSIS: 'Compare project performance metrics'\n")
+
     while True:
         try:
             # Get user input
@@ -263,6 +314,8 @@ def interactive_mode():
 
             # Display response
             print("\n" + "="*70)
+            print(f"Route: {result['route']}")
+            print("="*70)
             print("Response:")
             print("="*70)
             print(result["response"])
@@ -286,10 +339,14 @@ def main():
 
         # Run interactive mode
         print("\n" + "="*70)
-        print("RAG System - Interactive Mode")
+        print("RAG System - Interactive Mode (LLM-based Routing)")
         print("="*70)
         print("Ask questions about your documents!")
-        print("Type 'quit' to exit")
+        print("The system will automatically route to:")
+        print("  - SEMANTIC_QUERY: Document content questions")
+        print("  - METADATA_QUERY: Project names, ELN IDs, identifiers")
+        print("  - DATA_ANALYSIS: Data visualization, metrics")
+        print("\nType 'quit' to exit")
         print("="*70)
 
         interactive_mode()

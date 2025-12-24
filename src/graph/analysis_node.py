@@ -153,7 +153,7 @@ class AnalysisNode:
 
         # Update state
         state["response"] = summary
-        state["route"] = "analysis"
+        state["route"] = "DATA_ANALYSIS"
         state["analysis_data"] = comparison  # Store raw results for potential further processing
 
         return state

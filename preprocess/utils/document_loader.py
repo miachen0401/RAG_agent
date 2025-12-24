@@ -246,7 +246,7 @@ def find_documents_in_folders(root_dir: str) -> List[Dict[str, str]]:
     """
     Find documents in folder structure.
 
-    For each folder under root_dir, looks for a Word document (.docx) or text file (.txt)
+    For each folder under root_dir, looks for a Word document (.docx)
     directly under that folder (not in subfolders).
 
     Args:
@@ -258,20 +258,7 @@ def find_documents_in_folders(root_dir: str) -> List[Dict[str, str]]:
     root_path = Path(root_dir)
     documents = []
 
-    # Check if root_dir itself contains documents (flat structure)
-    for file_path in root_path.glob("*.docx"):
-        documents.append({
-            "folder_name": root_path.name,
-            "file_path": str(file_path)
-        })
-
-    for file_path in root_path.glob("*.txt"):
-        documents.append({
-            "folder_name": root_path.name,
-            "file_path": str(file_path)
-        })
-
-    # Also check subdirectories (each folder should have one doc directly under it)
+    # check subdirectories (each folder should have one doc directly under it)
     for folder in root_path.iterdir():
         if not folder.is_dir():
             continue
@@ -284,13 +271,5 @@ def find_documents_in_folders(root_dir: str) -> List[Dict[str, str]]:
                 "file_path": str(docx_files[0])  # Take the first one
             })
             continue
-
-        # If no .docx, look for .txt files
-        txt_files = list(folder.glob("*.txt"))
-        if txt_files:
-            documents.append({
-                "folder_name": folder.name,
-                "file_path": str(txt_files[0])  # Take the first one
-            })
 
     return documents

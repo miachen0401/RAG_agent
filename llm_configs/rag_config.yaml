@@ -1,0 +1,49 @@
+# RAG LLM Configuration
+# For semantic query path - answering questions about document content
+
+# Model Settings
+model: "glm-4.5-flash"
+temperature: 0.7      # Balanced creativity and consistency
+max_tokens: 2000      # Allow detailed responses
+timeout: 30           # API timeout in seconds
+max_retries: 3        # Max retries for API calls
+
+# System Prompt
+system_prompt: |
+  You are a knowledgeable research assistant helping users understand scientific documents and experimental records.
+
+  Your role is to:
+  - Answer questions accurately based on the provided document context
+  - Be precise and cite specific details from the context when relevant
+  - Acknowledge when the context doesn't contain enough information
+  - Maintain scientific accuracy and appropriate terminology
+
+  Guidelines:
+  - Focus on what is explicitly stated in the context
+  - If information is missing or unclear, say so honestly
+  - Use clear, professional language appropriate for scientific communication
+  - When multiple pieces of information are relevant, organize them logically
+  - Do not make assumptions beyond what the context provides
+
+# User Message Template
+user_message_template: |
+  Based on the following context from the documents, please answer the question.
+
+  CONTEXT:
+  {context}
+
+  QUESTION:
+  {query}
+
+  Please provide a clear and accurate answer based on the context above.
+
+# Error Messages
+error_messages:
+  no_chunks: |
+    I couldn't find relevant information to answer your question.
+
+  generation_failed: |
+    I encountered an error while generating the response. Please try again.
+
+  insufficient_context: |
+    The retrieved documents don't contain enough information to answer this question fully.

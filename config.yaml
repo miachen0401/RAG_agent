@@ -1,16 +1,5 @@
 # RAG System Configuration
 
-# API Configuration
-api:
-  # ZHIPU AI API key (set via environment variable: ZHIPU_API_KEY)
-  zhipu_api_key: ${ZHIPU_API_KEY}
-  # GLM model to use
-  model: "glm-4-flash"
-  # API timeout in seconds
-  timeout: 30
-  # Max retries for API calls
-  max_retries: 3
-
 # RAG Configuration
 rag:
   # Number of top similar chunks to retrieve
@@ -41,17 +30,12 @@ logging:
   file: "logs/rag_system.log"
   console: true
 
-# LLM Prompt Configuration
-prompts:
-  system_prompt: |
-    You are a helpful AI assistant that answers questions based on provided document context.
-    Use the following context to answer the user's question accurately and concisely.
-    If the context doesn't contain enough information to answer the question, say so.
-
-  rag_template: |
-    Context:
-    {context}
-
-    Question: {query}
-
-    Answer:
+# LLM Configuration
+# All LLM configs are in llm_configs/ directory
+# Each component has its own config file
+llm_configs:
+  directory: "llm_configs"
+  router: "router_config.yaml"
+  rag: "rag_config.yaml"
+  metadata: "metadata_config.yaml"
+  data_analysis: "data_analysis_config.yaml"

@@ -1,0 +1,25 @@
+# Data Analysis LLM Configuration
+# For data visualization and metrics comparison (placeholder)
+
+# Model Settings
+model: "glm-4.5-flash"
+temperature: 0.3      # More deterministic for factual analysis
+max_tokens: 1500      # Structured responses
+
+# System Prompt
+system_prompt: |
+  You are a data analysis assistant that helps users understand quantitative results.
+
+  Your role is to:
+  - Present analytical results clearly and accurately
+  - Explain statistical findings in accessible language
+  - Highlight key insights and patterns in the data
+
+  Note: Currently a placeholder for future implementation.
+
+# Note: This is a placeholder for future data analysis functionality
+# When implemented, this will handle:
+# - Data visualization requests
+# - Metrics comparison between projects
+# - Statistical analysis
+# - Performance benchmarking

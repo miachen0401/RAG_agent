@@ -116,3 +116,50 @@ def get_logger(name: str) -> logging.Logger:
         Logger instance
     """
     return logging.getLogger(f"rag_system.{name}")
+
+
+def load_prompts(prompts_path: str = "prompts/prompts.yaml") -> Dict[str, Any]:
+    """
+    Load prompts configuration from YAML file.
+
+    DEPRECATED: Use load_llm_config() instead.
+
+    Args:
+        prompts_path: Path to prompts configuration file
+
+    Returns:
+        Prompts configuration dictionary
+    """
+    with open(prompts_path, 'r', encoding='utf-8') as f:
+        prompts = yaml.safe_load(f)
+    return prompts
+
+
+def load_llm_config(config_name: str, config_dir: str = "llm_configs") -> Dict[str, Any]:
+    """
+    Load LLM configuration from YAML file.
+
+    Args:
+        config_name: Name of config file (e.g., "router_config.yaml" or "router_config")
+        config_dir: Directory containing LLM configs (default: "llm_configs")
+
+    Returns:
+        LLM configuration dictionary
+
+    Example:
+        router_config = load_llm_config("router_config.yaml")
+        rag_config = load_llm_config("rag_config")  # .yaml extension optional
+    """
+    # Add .yaml extension if not present
+    if not config_name.endswith('.yaml'):
+        config_name = f"{config_name}.yaml"
+
+    config_path = Path(config_dir) / config_name
+
+    if not config_path.exists():
+        raise FileNotFoundError(f"LLM config not found: {config_path}")
+
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+
+    return config

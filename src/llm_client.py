@@ -21,7 +21,8 @@ class GLMClient:
     def __init__(
         self,
         api_key: str,
-        model: str = "glm-4-flash",
+        model: str = "glm-4.5-flash",
+        temperature: float = 0.7,
         timeout: int = 30,
         max_retries: int = 3
     ):
@@ -31,14 +32,16 @@ class GLMClient:
         Args:
             api_key: ZHIPU AI API key
             model: Model name (default: glm-4-flash)
+            temperature: Default sampling temperature (can be overridden in generate)
             timeout: Request timeout in seconds
             max_retries: Maximum number of retries
         """
         self.model = model
+        self.default_temperature = temperature
         self.timeout = timeout
         self.max_retries = max_retries
 
-        logger.info(f"Initializing GLMClient with model={model}")
+        logger.info(f"Initializing GLMClient with model={model}, temperature={temperature}")
 
         try:
             self.client = ZhipuAI(api_key=api_key)
@@ -52,7 +55,7 @@ class GLMClient:
         query: str,
         context: str,
         system_prompt: str,
-        temperature: float = 0.7,
+        temperature: Optional[float] = None,
         max_tokens: int = 2000
     ) -> Optional[str]:
         """
@@ -62,12 +65,16 @@ class GLMClient:
             query: User query
             context: Retrieved context from chunks
             system_prompt: System prompt for the LLM
-            temperature: Sampling temperature
+            temperature: Sampling temperature (uses default if None)
             max_tokens: Maximum tokens in response
 
         Returns:
             Generated answer or None if failed
         """
+        # Use default temperature if not specified
+        if temperature is None:
+            temperature = self.default_temperature
+
         logger.info("Generating answer with GLM-4-Flash")
         logger.debug(f"Query: {query[:100]}...")
         logger.debug(f"Context length: {len(context)} characters")
@@ -80,7 +87,7 @@ class GLMClient:
 
         try:
             # Call API
-            logger.debug(f"Calling ZHIPU API with model={self.model}")
+            logger.debug(f"Calling ZHIPU API with model={self.model}, temperature={temperature}")
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -102,7 +109,7 @@ class GLMClient:
     def generate_simple(
         self,
         prompt: str,
-        temperature: float = 0.7,
+        temperature: Optional[float] = None,
         max_tokens: int = 2000
     ) -> Optional[str]:
         """
@@ -110,12 +117,16 @@ class GLMClient:
 
         Args:
             prompt: User prompt
-            temperature: Sampling temperature
+            temperature: Sampling temperature (uses default if None)
             max_tokens: Maximum tokens in response
 
         Returns:
             Generated response or None if failed
         """
+        # Use default temperature if not specified
+        if temperature is None:
+            temperature = self.default_temperature
+
         logger.info("Generating simple response")
         logger.debug(f"Prompt: {prompt[:100]}...")
 
@@ -124,7 +135,7 @@ class GLMClient:
         ]
 
         try:
-            logger.debug(f"Calling ZHIPU API with model={self.model}")
+            logger.debug(f"Calling ZHIPU API with model={self.model}, temperature={temperature}")
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
