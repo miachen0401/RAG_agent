@@ -7,7 +7,7 @@ This script performs complete RAG preprocessing:
 3. Build and persist ChromaDB vector database
 
 Usage:
-    uv run python preprocess/scripts/build_rag_index.py
+    uv run python preprocess/build_rag_index.py
 """
 
 import os
@@ -19,11 +19,9 @@ from datetime import datetime
 import chromadb
 from chromadb.config import Settings
 
-# Add parent directories to path
-script_dir = Path(__file__).parent
-preprocess_dir = script_dir.parent
-project_dir = preprocess_dir.parent
-sys.path.insert(0, str(project_dir))
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from preprocess.utils.chunking import create_chunker
 from preprocess.utils.document_loader import DocumentLoader, find_documents_in_folders

@@ -8,7 +8,7 @@ This script allows you to view the contents of ChromaDB including:
 - Document statistics
 
 Usage:
-    uv run python preprocess/scripts/inspect_chroma.py
+    uv run python preprocess/inspect_chroma.py
 """
 
 import sys
@@ -17,8 +17,8 @@ import chromadb
 from pprint import pprint
 
 # Add project root to path
-project_dir = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_dir))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from src.utils import load_config, get_logger
 
