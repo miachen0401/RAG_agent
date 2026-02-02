@@ -1,0 +1,8 @@
+inference:
+  checkpoint_path: "outputs/checkpoints/best_model.pt"
+  csv_path: "data/instrument_runs.csv"
+  output_path: "outputs/anomaly_scores.csv"
+  threshold_method: "percentile"
+  percentile: 95.0
+  manual_threshold: null
+  flag_column: "is_anomaly"

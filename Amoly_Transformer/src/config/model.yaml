@@ -1,0 +1,16 @@
+model:
+  input_dim: 160
+  d_model: 128
+  nhead: 8
+  num_layers: 4
+  dim_feedforward: 512
+  dropout: 0.1
+  activation: "gelu"
+
+  gap_embedding:
+    num_bins: 32
+    max_gap: 500
+    embed_dim: 32
+
+  positional_encoding:
+    max_len: 128

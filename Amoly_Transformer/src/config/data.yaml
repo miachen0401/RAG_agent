@@ -1,0 +1,9 @@
+data:
+  csv_path: "data/instrument_runs.csv"
+  timestamp_col: "timestamp"
+  instrument_id_col: "instrument_id"
+  feature_prefix: "feat_"
+  window_size: 16
+  stride: 1
+  normalize: true
+  num_workers: 4
